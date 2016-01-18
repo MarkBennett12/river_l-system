@@ -123,8 +123,12 @@ def draw(instructions):
             turtle.down()
 
 axiom = "F"
+
+# set up rules
 rules = {}
-rules["F"] = "F-(5, 45, 20)F+(5, 45, 20)F[+(5, 45, 20)F(10, 30)][-(5, 45, 20)F(10, 30)]"
+rules["F"] = "F(10, 50)-(5, 65, 40)F(10, 50)+(5, 65, 40)F[+(5, 45, 20)F(10, 50)][-(5, 45, 20)F(10, 50)]"
+
+
 productionString = lsystem(axiom, rules, 2)
-print "reulting string = " + productionString
+print "reulting string = \n" + productionString + "\n"
 draw(productionString)
