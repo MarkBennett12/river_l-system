@@ -2,93 +2,108 @@ import turtle
 import random
 import re
 
+# Stores a symbol and any associated parameters
+# Generates the symbol data from a string on construction
 class ParameterisedSymbol:
-    
     # regex to extract symbols plus parameters
     pat_parameterList = r'\(.*?\)'
-    pat_baseSymbols = r'[\[\]+-F]'
+    pat_baseSymbols = r'[\[\]+-C]'
     pat_symbolAndParameters = r'(?:' + pat_baseSymbols +')' + '(?:' + pat_parameterList + ')?'
     pat_splitSymbolAndParameters = r'(' + pat_baseSymbols +')' + '(' + pat_parameterList + ')?'
 
     # regex to extract parameters
     pat_parameterValue = r'\d+(?:.\d+)?'
 
+    # construct symbol data from string with regex
     def __init__(self, symbolString):
         # extract symbol from symbol string
         splitSymbol = re.match(self.pat_splitSymbolAndParameters, symbolString)
-        self.mySymbol = splitSymbol.group(1)
 
-        # if paraemters exist extract them from symbol string into a list
-        if splitSymbol.group(2) is not None:
-            parameters = re.findall(self.pat_parameterValue, splitSymbol.group(2))
-            # the parameters need to be integers
-            self.myParameterList = [int(i) for i in parameters]
+        if splitSymbol is not None:
+            self.representation = splitSymbol.group(1)
+
+            # if parameters exist extract them from symbol string into a list
+            if splitSymbol.group(2) is not None:
+                parameters = re.findall(self.pat_parameterValue, splitSymbol.group(2))
+                # the parameters need to be integers
+                self.parameters = [int(i) for i in parameters]
+            else:
+                self.parameters = None
         else:
-            self.myParameterList = None
+            self.representation = None
+            self.parameters = None
 
+    # String representation
     def __str__(self):
-        output =str(self.mySymbol)
-        if self.myParameterList is not None:
-            output += ", " + str(self.myParameterList)
+        output =str(self.representation)
+        if self.parameters is not None:
+            output += ", " + str(self.parameters)
         return output
 
-# apply context sensitive, parameterised, stochastic rules
-def applyRule(rules, symbol, preceeding, succeding):
-    production = ""
+# Put all the rules into the ruleset class
+def setRules(ruleSet):
+    ruleSet.addRule("C", [(0.3, "C+C(10, 30)"), (0.3, "C-C(10, 30)"), (0.2, "C+C[-C(10, 30)]"), (0.2, "C-C[+C(10, 30)]")])
 
-    if rules.has_key(symbol.mySymbol):
-        production += rules[symbol.mySymbol]
-    else:
-        production += symbol.mySymbol
+# Stores and applies the rules for the l-system
+class Rules:
+    def __init__(self):
+        self.rules = {}
 
-    return production
+    def addRule(self, label, rule):
+        self.rules[label] = rule
 
-# run l-system
+    # apply context sensitive, parameterised, stochastic rules from a symbol
+    def applyRule(self, symbol, preceeding):
+        production = ""
+
+        # Check that this symbol has a rule
+        if self.rules.has_key(symbol.representation):
+            randomFloat = random.random()
+            probability = 0
+
+            # Use the probability et the appropriate rule for the current random number
+            for i in range(len(self.rules[symbol.representation])):
+                probability += self.rules[symbol.representation][i][0]
+                if randomFloat < probability:
+                    return self.rules[symbol.representation][i][1]
+
+        else:
+            return symbol.representation
+
+# Run the l-system
 def lsystem(axiom, rules, iterations):
     production = ""
-    precedingSymbol = ''
-    succeedingSymbol = ''
-    
+
     symbols = re.findall(ParameterisedSymbol.pat_symbolAndParameters, axiom)
-        
+
     for i in range(len(symbols)):
         
-        # get the context
-        if i > 0:
-            precedingSymbol = symbols[i-1]
-        if i < len(symbols) - 1:
-            succeedingSymbol = symbols[i + 1]
-
         # Expand symbol get parameters if any
         current = ParameterisedSymbol(symbols[i])
-        
-        # Expand context
-        preceding = None
-        if len(precedingSymbol) > 0:
-            preceding = ParameterisedSymbol(precedingSymbol)
-
-        succeeding = None
-        if len(succeedingSymbol) > 0:
-            succeeding = ParameterisedSymbol(succeedingSymbol)
-
         # apply any applicable production rules
-        production += applyRule(rules, current, preceding, succeeding)
-        
+        production += rules.applyRule(current, preceding)
+
+    # Recursive l-system implementation, stop when iterations equals zero
     if iterations > 0:
         return lsystem(production, rules, iterations - 1)
     else:
         return production
 
-# draw result
-def draw(instructions):   
-    stack = []
-    
-    turtle.up()
-    turtle.setup(800, 600)
-    turtle.setpos(0, -300)
-    turtle.setheading(90)
+# initialise turtle
+def initTurtle(windowWidth, windowHeight):
+    turtle.mode("logo")
     turtle.color("blue")
+    turtle.setup(windowWidth, windowHeight)
+
+    # Start position at bottom centre of window
+    turtle.up()
+    turtle.setpos(0, -(windowHeight / 2))
     turtle.down()
+
+
+# draw result
+def draw(instructions):
+    stack = []
 
     # convert the l-system string to turtle instructions
     for symbol in re.findall(ParameterisedSymbol.pat_symbolAndParameters, instructions):
@@ -97,38 +112,36 @@ def draw(instructions):
         mode = 5
         expanded = ParameterisedSymbol(symbol)        
         
-        if expanded.mySymbol == "F":
-            if expanded.myParameterList is not None:
-                minRange = expanded.myParameterList[0]
-                maxRange = expanded.myParameterList[1]
+        if expanded.representation == "C":
+            if expanded.parameters is not None:
+                minRange = expanded.parameters[0]
+                maxRange = expanded.parameters[1]
             turtle.forward(random.randint(minRange, maxRange))
-        if expanded.mySymbol == "+":
-            if expanded.myParameterList is not None:
-                minRange = expanded.myParameterList[0]
-                maxRange = expanded.myParameterList[1]
-                mode = expanded.myParameterList[1]
-            turtle.left(random.triangular(minRange, maxRange, mode))
-        if expanded.mySymbol == "-":
-            if expanded.myParameterList is not None:
-                minRange = expanded.myParameterList[0]
-                maxRange = expanded.myParameterList[1]
-                mode = expanded.myParameterList[1]
-            turtle.right(random.triangular(minRange, maxRange, mode))
-        if expanded.mySymbol == "[":
+        if expanded.representation == "+":
+            if expanded.parameters is not None:
+                mode = expanded.parameters[0]
+            turtle.left(random.triangular(0, 90, mode))
+        if expanded.representation == "-":
+            if expanded.parameters is not None:
+                print "mode = " + str(mode)
+            turtle.right(random.triangular(0, 90, mode))
+        if expanded.representation == "[":
             stack.append(turtle.pos())
-        if expanded.mySymbol == "]":
+        if expanded.representation == "]":
             pos = stack.pop()
             turtle.up()
             turtle.setpos(pos[0], pos[1])
             turtle.down()
 
-axiom = "F"
+axiom = "C"
 
-# set up rules
-rules = {}
-rules["F"] = "F(10, 50)-(5, 65, 40)F(10, 50)+(5, 65, 40)F[+(5, 45, 20)F(10, 50)][-(5, 45, 20)F(10, 50)]"
+rules = Rules()
+setRules(rules)
 
+width = 800
+height = 600
+initTurtle(width, height)
 
-productionString = lsystem(axiom, rules, 2)
-print "reulting string = \n" + productionString + "\n"
+productionString = lsystem(axiom, rules, 6)
+print "reulting string = " + productionString
 draw(productionString)
