@@ -52,8 +52,8 @@ class Rules:
     def addRule(self, label, rule):
         self.rules[label] = rule
 
-    # apply context sensitive, parameterised, stochastic rules from a symbol
-    def applyRule(self, symbol, preceeding):
+    # apply parameterised, stochastic rules from a symbol
+    def applyRule(self, symbol):
         production = ""
 
         # Check that this symbol has a rule
@@ -81,7 +81,7 @@ def lsystem(axiom, rules, iterations):
         # Expand symbol get parameters if any
         current = ParameterisedSymbol(symbols[i])
         # apply any applicable production rules
-        production += rules.applyRule(current, preceding)
+        production += rules.applyRule(current)
 
     # Recursive l-system implementation, stop when iterations equals zero
     if iterations > 0:
