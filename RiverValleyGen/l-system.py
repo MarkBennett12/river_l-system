@@ -2,8 +2,10 @@ import turtle
 import random
 import re
 
+##############################################################
 # Stores a symbol and any associated parameters
 # Generates the symbol data from a string on construction
+##############################################################
 class ParameterisedSymbol:
     # regex to extract symbols plus parameters
     pat_parameterList = r'\(.*?\)'
@@ -11,8 +13,10 @@ class ParameterisedSymbol:
     pat_symbolAndParameters = r'(?:' + pat_baseSymbols +')' + '(?:' + pat_parameterList + ')?'
     pat_splitSymbolAndParameters = r'(' + pat_baseSymbols +')' + '(' + pat_parameterList + ')?'
 
+    # regex to extract number
+    pat_number = r'\d+(?:.\d+)?'
     # regex to extract parameters
-    pat_parameterValue = r'\d+(?:.\d+)?'
+    pat_parameter = r'\w+(?:.\w+)?'
 
     # construct symbol data from string with regex
     def __init__(self, symbolString):
@@ -24,7 +28,7 @@ class ParameterisedSymbol:
 
             # if parameters exist extract them from symbol string into a list
             if splitSymbol.group(2) is not None:
-                parameters = re.findall(self.pat_parameterValue, splitSymbol.group(2))
+                parameters = re.findall(self.pat_parameter, splitSymbol.group(2))
                 # the parameters need to be integers
                 self.parameters = [int(i) for i in parameters]
             else:
@@ -40,11 +44,22 @@ class ParameterisedSymbol:
             output += ", " + str(self.parameters)
         return output
 
+##############################################################
 # Put all the rules into the ruleset class
+##############################################################
 def setRules(ruleSet):
-    ruleSet.addRule("C", [(0.3, "C+C(10, 30)"), (0.3, "C-C(10, 30)"), (0.2, "C+C[-C(10, 30)]"), (0.2, "C-C[+C(10, 30)]")])
+    ruleSet.addRule("C",
+                        [
+                            (0.3, "C(10, 30)+C(10, 30)"),
+                            (0.3, "C(10, 30)-C(10, 30)"),
+                            (0.2, "C(10, 30)+C(10, 30)[-C(10, 30)]"),
+                            (0.2, "C(10, 30)-C(10, 30)[+C(10, 30)]")
+                        ]
+                    )
 
+##############################################################
 # Stores and applies the rules for the l-system
+##############################################################
 class Rules:
     def __init__(self):
         self.rules = {}
@@ -52,7 +67,7 @@ class Rules:
     def addRule(self, label, rule):
         self.rules[label] = rule
 
-    # apply parameterised, stochastic rules from a symbol
+    # apply context sensitive, parameterised, stochastic rules from a symbol
     def applyRule(self, symbol):
         production = ""
 
@@ -61,7 +76,7 @@ class Rules:
             randomFloat = random.random()
             probability = 0
 
-            # Use the probability et the appropriate rule for the current random number
+            # Use the probability to get the appropriate rule for the current random number
             for i in range(len(self.rules[symbol.representation])):
                 probability += self.rules[symbol.representation][i][0]
                 if randomFloat < probability:
@@ -70,14 +85,15 @@ class Rules:
         else:
             return symbol.representation
 
+##############################################################
 # Run the l-system
+##############################################################
 def lsystem(axiom, rules, iterations):
     production = ""
 
     symbols = re.findall(ParameterisedSymbol.pat_symbolAndParameters, axiom)
 
-    for i in range(len(symbols)):
-        
+    for i in range(len(symbols)): 
         # Expand symbol get parameters if any
         current = ParameterisedSymbol(symbols[i])
         # apply any applicable production rules
@@ -89,7 +105,9 @@ def lsystem(axiom, rules, iterations):
     else:
         return production
 
+##############################################################
 # initialise turtle
+##############################################################
 def initTurtle(windowWidth, windowHeight):
     turtle.mode("logo")
     turtle.color("blue")
@@ -100,10 +118,19 @@ def initTurtle(windowWidth, windowHeight):
     turtle.setpos(0, -(windowHeight / 2))
     turtle.down()
 
-
+##############################################################
 # draw result
-def draw(instructions):
+##############################################################
+def draw(instructions, order):
     stack = []
+
+    #### Variables concerned with river characteristics ####
+    
+    # Store the current base angle so we know when to stop decaying the angle
+    baseAngle = 45
+    # Supplies the 'mod' parameter to the random triangular function
+    # to give an angle bias for river meanders
+    currentAngle = 45
 
     # convert the l-system string to turtle instructions
     for symbol in re.findall(ParameterisedSymbol.pat_symbolAndParameters, instructions):
@@ -113,18 +140,20 @@ def draw(instructions):
         expanded = ParameterisedSymbol(symbol)        
         
         if expanded.representation == "C":
-            if expanded.parameters is not None:
-                minRange = expanded.parameters[0]
-                maxRange = expanded.parameters[1]
-            turtle.forward(random.randint(minRange, maxRange))
+            #if expanded.parameters is not None:
+            turtle.forward(random.randint(5, 30))
         if expanded.representation == "+":
-            if expanded.parameters is not None:
-                mode = expanded.parameters[0]
-            turtle.left(random.triangular(0, 90, mode))
+            #if expanded.parameters is not None:
+            #print "currentAngle = " + str(currentAngle)
+            angleToTurn = random.triangular(0, 90, currentAngle)
+            #print "angleToTurn = " + str(angleToTurn)
+            turtle.left(angleToTurn)
         if expanded.representation == "-":
-            if expanded.parameters is not None:
-                print "mode = " + str(mode)
-            turtle.right(random.triangular(0, 90, mode))
+            #if expanded.parameters is not None:
+            #print "currentAngle = " + str(currentAngle)
+            angleToTurn = random.triangular(0, 90, currentAngle)
+            #print "angleToTurn = " + str(angleToTurn)
+            turtle.right(angleToTurn)
         if expanded.representation == "[":
             stack.append(turtle.pos())
         if expanded.representation == "]":
@@ -133,6 +162,9 @@ def draw(instructions):
             turtle.setpos(pos[0], pos[1])
             turtle.down()
 
+##############################################################
+# The main script sets up the l-system then runs it
+##############################################################
 axiom = "C"
 
 rules = Rules()
@@ -142,6 +174,7 @@ width = 800
 height = 600
 initTurtle(width, height)
 
-productionString = lsystem(axiom, rules, 6)
+productionString = lsystem(axiom, rules, 3)
+# print the string for debugging purposes
 print "reulting string = " + productionString
-draw(productionString)
+draw(productionString, 8)
