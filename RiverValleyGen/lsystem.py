@@ -13,10 +13,16 @@ class ParameterisedSymbol:
     pat_symbolAndParameters = r'(?:' + pat_baseSymbols +')' + '(?:' + pat_parameterList + ')?'
     pat_splitSymbolAndParameters = r'(' + pat_baseSymbols +')' + '(' + pat_parameterList + ')?'
 
-    # regex to extract number
-    pat_number = r'\d+(?:.\d+)?'
+    # regex to extract numbers
+    pat_int = r'\d+'
+    pat_float = r'\d+\.\d+'
+    pat_number = pat_int + r'|' + pat_float
+    
+    # regex to extract parameter variables, these must have specific values, currently 'o' for order
+    pat_variable = r'[os]'
+    
     # regex to extract parameters
-    pat_parameter = r'\w+(?:.\w+)?'
+    pat_parameter = pat_variable + r'|' + pat_number
 
     # construct symbol data from string with regex
     def __init__(self, symbolString):
@@ -28,9 +34,7 @@ class ParameterisedSymbol:
 
             # if parameters exist extract them from symbol string into a list
             if splitSymbol.group(2) is not None:
-                parameters = re.findall(self.pat_parameter, splitSymbol.group(2))
-                # the parameters need to be integers
-                self.parameters = [int(i) for i in parameters]
+                self.parameters = re.findall(self.pat_parameter, splitSymbol.group(2))
             else:
                 self.parameters = None
         else:
@@ -39,9 +43,14 @@ class ParameterisedSymbol:
 
     # String representation
     def __str__(self):
-        output =str(self.representation)
+        output = str(self.representation)
         if self.parameters is not None:
-            output += ", " + str(self.parameters)
+            output += "("
+            for i in range(len(self.parameters)):
+                output += self.parameters[i]
+                if i < len(self.parameters):
+                    output += ","
+            output += ")"
         return output
 
 ##############################################################
@@ -50,10 +59,10 @@ class ParameterisedSymbol:
 def setRules(ruleSet):
     ruleSet.addRule("C",
                         [
-                            (0.3, "C(10, 30)+C(10, 30)"),
-                            (0.3, "C(10, 30)-C(10, 30)"),
-                            (0.2, "C(10, 30)+C(10, 30)[-C(10, 30)]"),
-                            (0.2, "C(10, 30)-C(10, 30)[+C(10, 30)]")
+                            (0.3, "C(o, s)+C(o, s)"),
+                            (0.3, "C(o, s)-C(o, s)"),
+                            (0.2, "C(o, s)+C(o, s)[-C(o, 30)]"),
+                            (0.2, "C(o, s)-C(o, s)[+C(o, 30)]")
                         ]
                     )
 
@@ -63,12 +72,30 @@ def setRules(ruleSet):
 class Rules:
     def __init__(self):
         self.rules = {}
+        # store the previous iterations numeric value of a parameter to be applied to the next iterations variables
+        self.parameterValues = [0, 0]
 
     def addRule(self, label, rule):
         self.rules[label] = rule
 
+    # process the symbol parameters
+    def processParameters(self, parameters):
+        order = 0
+        print str(parameters)
+        if len(parameters) > 0:
+            # order is represented by the first parameter
+            order = parameters[0]
+            # is it a variable?
+            if order == 'o':
+                # apply the previous parameter value to the current parameter variable
+                self.parameterValues[0] = self.parameterValues[0]
+            else:
+                # get the numeric value of a parameter
+                self.parameterValues[0] = order
+
     # apply context sensitive, parameterised, stochastic rules from a symbol
     def applyRule(self, symbol):
+        print str(symbol)
         production = ""
 
         # Check that this symbol has a rule
@@ -76,11 +103,18 @@ class Rules:
             randomFloat = random.random()
             probability = 0
 
+            # Check we have some parameters
+            if symbol.parameters is not None:
+                self.processParameters(symbol.parameters)
+
             # Use the accumulated probability to get the appropriate rule for the current random number
             for i in range(len(self.rules[symbol.representation])):
                 probability += self.rules[symbol.representation][i][0]
                 if randomFloat < probability:
-                    return self.rules[symbol.representation][i][1]
+                    # instanciate the rule body parameter variables with thier numeric values
+                    ruleBody = re.sub(r'o', str(self.parameterValues[0]), self.rules[symbol.representation][i][1])
+                    ruleBody = re.sub(r's', str(self.parameterValues[1]), ruleBody)
+                    return ruleBody
 
         else:
             return symbol.representation

@@ -4,7 +4,7 @@ from drawing import *
 ##############################################################
 # The main script sets up the l-system then runs it
 ##############################################################
-axiom = "C"
+axiom = "C(4, 0)"
 
 rules = Rules()
 setRules(rules)
