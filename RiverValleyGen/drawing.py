@@ -1,4 +1,5 @@
-from lsystem import *
+from lsystem import parseL_SystemString
+from lsystemParser import parseL_SystemString, parameterSubstitutuion
 import turtle
 import random
 import re
@@ -31,30 +32,29 @@ def draw(instructions, order):
     currentAngle = 45
 
     # convert the l-system string to turtle instructions
-    for symbol in re.findall(ParameterisedSymbol.pat_symbolAndParameters, instructions):
+    for symbol in parseL_SystemString(instructions):
         minRange = 1
         maxRange = 10
         mode = 5
-        expanded = ParameterisedSymbol(symbol)        
         
-        if expanded.representation == "C":
+        if symbol[0] == "C":
             #if expanded.parameters is not None:
             turtle.forward(random.randint(5, 30))
-        if expanded.representation == "+":
+        if symbol[0] == "+":
             #if expanded.parameters is not None:
             #print "currentAngle = " + str(currentAngle)
             angleToTurn = random.triangular(0, 90, currentAngle)
             #print "angleToTurn = " + str(angleToTurn)
             turtle.left(angleToTurn)
-        if expanded.representation == "-":
+        if symbol[0] == "-":
             #if expanded.parameters is not None:
             #print "currentAngle = " + str(currentAngle)
             angleToTurn = random.triangular(0, 90, currentAngle)
             #print "angleToTurn = " + str(angleToTurn)
             turtle.right(angleToTurn)
-        if expanded.representation == "[":
+        if symbol[0] == "[":
             stack.append(turtle.pos())
-        if expanded.representation == "]":
+        if symbol[0] == "]":
             pos = stack.pop()
             turtle.up()
             turtle.setpos(pos[0], pos[1])
