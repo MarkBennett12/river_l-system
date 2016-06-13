@@ -6,7 +6,7 @@ from drawing import *
 ##############################################################
 axiom = "C(4, 0)"
 
-rules = Rules()
+rules = Rules('os')
 rules.addRule("C",
                     [
                         (0.3, "C(o, s)+C(o, s)"),

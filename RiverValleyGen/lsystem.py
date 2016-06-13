@@ -2,44 +2,31 @@ import turtle
 import random
 from lsystemParser import parseL_SystemString, parameterSubstitutuion
 
-# String representation
-def symbolToString(self, symbol):
-    output = str(symbol[0])
-    if symbol[1] is not None:
-        output += "("
-        for i in range(len(symbol[1])):
-            output += symbol[1][i]
-            if i < len(symbol[1]):
-                output += ","
-        output += ")"
-    return output
-
 ##############################################################
 # Stores and applies the rules for the l-system
 ##############################################################
 class Rules:
-    def __init__(self):
+    def __init__(self, parameterLabels):
         self.rules = {}
         # store the previous iterations numeric value of a parameter to be applied to the next iterations variables
         self.parameterValues = [0, 0]
+        self.parameterLabels = parameterLabels
 
     def addRule(self, label, rule):
         self.rules[label] = rule
 
     # process the symbol parameters
     def processParameters(self, parameters):
-        order = 0
-        print str(parameters)
+        print "parameters = " + str(parameters)
         if len(parameters) > 0:
-            # order is represented by the first parameter
-            order = parameters[0]
-            # is it a variable?
-            if order == 'o':
-                # apply the previous parameter value to the current parameter variable
-                self.parameterValues[0] = self.parameterValues[0]
-            else:
-                # get the numeric value of a parameter
-                self.parameterValues[0] = order
+            for parameter in parameters:
+                # is it a variable?
+                if parameter in self.parameterLabels:
+                    # apply the previous parameter value to the current parameter variable
+                    self.parameterValues[0] = self.parameterValues[0]
+                else:
+                    # get the numeric value of a parameter
+                    self.parameterValues[0] = parameter
 
     # apply context sensitive, parameterised, stochastic rules from a symbol
     def applyRule(self, symbol):
@@ -59,8 +46,9 @@ class Rules:
             for i in range(len(self.rules[symbol[0]])):
                 probability += self.rules[symbol[0]][i][0]
                 if randomFloat < probability:
+                    print "parameter value = " + str(self.parameterValues)
                     # instanciate the rule body parameter variables with thier numeric values
-                    ruleBody = parameterSubstitutuion(self.rules[symbol[0]][i][1], zip(['o', 's'], self.parameterValues))
+                    ruleBody = parameterSubstitutuion(self.rules[symbol[0]][i][1], zip(self.parameterLabels, self.parameterValues))
                     return ruleBody
 
         else:
