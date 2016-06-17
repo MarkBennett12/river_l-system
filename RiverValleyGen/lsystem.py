@@ -15,22 +15,29 @@ class Rules:
     def addRule(self, label, rule):
         self.rules[label] = rule
 
+    def updateOrderParameter(self, order):
+        print "order = " + str(order)
+        return order
+
     # process the symbol parameters
-    def processParameters(self, parameters):
+    def processParameters(self, symbol, parameters):
         print "parameters = " + str(parameters)
         if len(parameters) > 0:
-            for parameter in parameters:
+            for i in range(len(parameters)):
                 # is it a variable?
-                if parameter in self.parameterLabels:
+                if parameters[i] in self.parameterLabels:
                     # apply the previous parameter value to the current parameter variable
-                    self.parameterValues[0] = self.parameterValues[0]
+                    if symbol in '+-' and parameters[i] == 'o':
+                        self.parameterValues[i] = updateOrderParameter(self.parameterValues[i])
+                    else:
+                        self.parameterValues[i] = self.parameterValues[0]
                 else:
                     # get the numeric value of a parameter
-                    self.parameterValues[0] = parameter
+                    self.parameterValues[i] = parameters[i]
 
     # apply context sensitive, parameterised, stochastic rules from a symbol
     def applyRule(self, symbol):
-        print str(symbol)
+        print "in applyRule, current symbol" + str(symbol)
         production = ""
 
         # Check that this symbol has a rule
@@ -40,13 +47,13 @@ class Rules:
 
             # Check we have some parameters
             if symbol[1] is not None:
-                self.processParameters(symbol[1])
+                self.processParameters(symbol[0], symbol[1])
 
             # Use the accumulated probability to get the appropriate rule for the current random number
             for i in range(len(self.rules[symbol[0]])):
                 probability += self.rules[symbol[0]][i][0]
                 if randomFloat < probability:
-                    print "parameter value = " + str(self.parameterValues)
+                    #print "parameter value = " + str(self.parameterValues)
                     # instanciate the rule body parameter variables with thier numeric values
                     ruleBody = parameterSubstitutuion(self.rules[symbol[0]][i][1], zip(self.parameterLabels, self.parameterValues))
                     return ruleBody
@@ -61,7 +68,7 @@ def lsystem(axiom, rules, iterations):
     production = ""
 
     symbols = parseL_SystemString(axiom)
-    print str(symbols)
+    #print str(symbols)
 
     for symbol in symbols:
         # Expand symbol get parameters if any

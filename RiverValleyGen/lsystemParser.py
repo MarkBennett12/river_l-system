@@ -59,7 +59,7 @@ def parseSymbol(symbolString):
 # the corresponding values. the new rule body string is returned
 ##############################################################
 def parameterSubstitutuion(ruleBody, parameterBindings):
-    print "rulebody = " + str(ruleBody) + ", parameterBindings = " + str(parameterBindings)
+    print "parameterSubstitutuion : rulebody = " + str(ruleBody) + ", parameterBindings = " + str(parameterBindings)
     substitutedString = ruleBody
     for parameter in parameterBindings:
         substitutedString = re.sub(parameter[0], str(parameter[1]), substitutedString)

@@ -9,10 +9,10 @@ axiom = "C(4, 0)"
 rules = Rules('os')
 rules.addRule("C",
                     [
-                        (0.3, "C(o, s)+C(o, s)"),
-                        (0.3, "C(o, s)-C(o, s)"),
-                        (0.2, "C(o, s)+C(o, s)[-C(o, 30)]"),
-                        (0.2, "C(o, s)-C(o, s)[+C(o, 30)]")
+                        (0.3, "C(o, s)+(o, s)C(o, s)"),
+                        (0.3, "C(o, s)-(o, s)C(o, s)"),
+                        (0.2, "C(o, s)+(o, s)C(o, s)[-(o, s)C(o, 30)]"),
+                        (0.2, "C(o, s)-(o, s)C(o, s)[+(o, s)C(o, 30)]")
                     ]
                 )
 
